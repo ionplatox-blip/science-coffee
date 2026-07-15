@@ -1,0 +1,21 @@
+[Unit]
+Description=Science Coffee Bot — random coffee for KR Nauka
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/science-coffee
+ExecStart=/usr/bin/python3 -m bot.main
+Restart=always
+RestartSec=10
+EnvironmentFile=/opt/science-coffee/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=science-coffee
+
+[Install]
+WantedBy=multi-user.target
