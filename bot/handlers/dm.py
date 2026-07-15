@@ -75,6 +75,19 @@ async def _cleanup_poll(bot, round_data: dict) -> None:
         logger.debug(f"Could not delete poll message: {e}")
 
 
+async def _stop_poll_only(bot, round_data: dict) -> None:
+    """Stop the poll (close voting) but keep the message visible."""
+    chat_id = round_data.get("chat_id") or (await get_group_chat_id())
+    poll_msg_id = round_data.get("poll_message_id")
+    if not chat_id or not poll_msg_id:
+        return
+
+    try:
+        await bot.stop_poll(chat_id=chat_id, message_id=poll_msg_id)
+    except Exception as e:
+        logger.debug(f"Could not stop poll: {e}")
+
+
 # ─── Main screen ─────────────────────────────────────────
 
 async def _main_text_and_kb() -> tuple[str, InlineKeyboardMarkup]:
@@ -288,6 +301,9 @@ async def cb_match(callback: CallbackQuery):
             ]),
         )
         return
+
+    # Close the poll — no more votes after matching
+    await _stop_poll_only(callback.bot, current_round)
 
     await send_pairs_message(callback.bot, chat_id, matches)
 
