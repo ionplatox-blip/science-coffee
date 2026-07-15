@@ -39,32 +39,43 @@ async def send_pairs_message(
     matches: list[dict],
 ) -> None:
     """
-    Post matching results as a single message to the group chat.
-    Format: @user1 x @user2 (like Random Coffee).
+    Post matching results to the group chat.
+    Splits into multiple messages if text exceeds Telegram's 4096 char limit.
     """
-    lines = [
-        "☕ <b>Пары для Научного Кофе составлены!</b>",
-        "Ищи в списке ниже, с кем встречаешься в этом месяце:",
-        "",
-    ]
-
-    for match in matches:
-        users = match["users"]
-        if match["is_trio"]:
-            mentions = _mention_list(users)
-            lines.append(f"  ☕ {' x '.join(mentions)}")
-        else:
-            u1, u2 = users[0], users[1]
-            lines.append(f"  ☕ {_mention(u1)} x {_mention(u2)}")
-
-    lines.append("")
-    lines.append(
-        "Напиши собеседнику в личку, чтобы договориться "
+    header = (
+        "☕ <b>Пары для Научного Кофе составлены!</b>\n"
+        "Ищи в списке ниже, с кем встречаешься в этом месяце:\n"
+    )
+    footer = (
+        "\nНапиши собеседнику в личку, чтобы договориться "
         "об удобном времени и формате встречи ☕"
     )
 
-    await bot.send_message(chat_id, "\n".join(lines))
-    logger.info(f"Pairs message sent to chat {chat_id}: {len(matches)} pairs")
+    pair_lines = []
+    for match in matches:
+        users = match["users"]
+        mentions = [_mention(u) for u in users]
+        pair_lines.append(f"  ☕ {' x '.join(mentions)}")
+
+    # Split into chunks respecting 4096 char limit
+    MAX_LEN = 4096
+    chunks = []
+    current = header
+
+    for line in pair_lines:
+        # +1 for newline
+        if len(current) + len(line) + 1 + len(footer) > MAX_LEN:
+            chunks.append(current)
+            current = ""
+        current += line + "\n"
+
+    current += footer
+    chunks.append(current)
+
+    for chunk in chunks:
+        await bot.send_message(chat_id, chunk)
+
+    logger.info(f"Pairs message sent to chat {chat_id}: {len(matches)} pairs ({len(chunks)} msg)")
 
 
 async def send_meeting_nudge(bot: Bot, chat_id: int) -> None:
@@ -90,12 +101,12 @@ async def send_feedback_poll(bot: Bot, chat_id: int) -> None:
 
 
 def _mention(user: dict) -> str:
-    """Format user as @username or full_name."""
+    """Format user as @username or linked full_name."""
     if user.get("username"):
         return f"@{user['username']}"
-    return user.get("full_name", "—")
-
-
-def _mention_list(users: list[dict]) -> list[str]:
-    """Format list of users as mentions."""
-    return [_mention(u) for u in users]
+    # Fallback: tg://user link so people can still click
+    name = user.get("full_name", "Участник")
+    tg_id = user.get("telegram_id", "")
+    if tg_id:
+        return f'<a href="tg://user?id={tg_id}">{name}</a>'
+    return name

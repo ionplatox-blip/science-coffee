@@ -35,6 +35,11 @@ async def on_poll_answer(poll_answer: PollAnswer):
         logger.debug(f"Poll {poll_id} not found in rounds — ignoring")
         return
 
+    # Ignore votes for already completed rounds
+    if round_data.get("status") not in ("planned", "active"):
+        logger.debug(f"Round #{round_data['id']} is {round_data['status']} — ignoring vote")
+        return
+
     # Auto-register user from poll vote
     full_name = user.first_name or ""
     if user.last_name:
