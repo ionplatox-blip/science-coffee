@@ -6,9 +6,9 @@
 
 set -euo pipefail
 
-SERVER="root@95.181.175.238"
+SERVER="${DEPLOY_SERVER:-root@your-server-ip}"
 REMOTE_DIR="/opt/science-coffee"
-SSH_KEY="$HOME/vpn-chain/bot/deploy_key"
+SSH_KEY="${DEPLOY_KEY:-$HOME/.ssh/id_ed25519}"
 SSH="ssh -i $SSH_KEY $SERVER"
 SCP="scp -i $SSH_KEY -r"
 
