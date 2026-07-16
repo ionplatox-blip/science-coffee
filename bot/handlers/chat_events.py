@@ -46,5 +46,6 @@ async def on_bot_added(event: ChatMemberUpdated):
     ChatMemberUpdatedFilter(member_status_changed=(IS_MEMBER | ADMINISTRATOR) >> IS_NOT_MEMBER)
 )
 async def on_bot_removed(event: ChatMemberUpdated):
-    """Bot was removed from a group."""
-    logger.info(f"Bot removed from chat: {event.chat.title} (id={event.chat.id})")
+    """Bot was removed from a group — clear saved chat_id."""
+    await set_setting("group_chat_id", "")
+    logger.info(f"Bot removed from chat: {event.chat.title} (id={event.chat.id}), chat_id cleared")
